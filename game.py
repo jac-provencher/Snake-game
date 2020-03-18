@@ -1,73 +1,116 @@
 import pygame
-from random import randint
+from random import choice
+from itertools import product
 
-pygame.init()
+class cube:
 
-class Cube:
+    rows = 20
+    width = 500
 
-    def __init__(self, startingPoint, direction=(1, 0)):
-        pass
+    def __init__(self, position, direction=(1, 0), color=(255, 0, 0)):
+        self.position = position
+        self.direction = direction
+        self.color = color
 
     def move(self, direction):
-        pass
+
+        self.direction = direction
+        row, line = self.position
+        i, j = direction
+        self.position = (row + i, line + j)
 
     def draw(self, surface, eyes=False):
-        pass
 
-class Snake:
+        sizeBtwn = self.width // self.rows
+        row, line = self.position
+        position, dimension = (sizeBtwn*row, sizeBtwn*line), (sizeBtwn, sizeBtwn)
+        pygame.draw.rect(surface, self.color, (position, dimension))
+
+class snake:
 
     bodyparts = []
     turns = {}
 
     def __init__(self, color, position):
         self.color = color
-        self.head = Cube(position)
+        self.head = cube(position)
         self.bodyparts.append(self.head)
-        self.x, self.y = position
-        self.snakeDirection = (1, 0)
-        self.speed = 15
-        self.vector = {'right': (1, 0), 'left': (-1, 0), 'up': (0, -1), 'down': (0, 1), 'statique': (0, 0)}
+        self.vector = {'right': (1, 0), 'left': (-1, 0),'up': (0, -1), 'down': (0, 1), 'statique': (0, 0)}
 
     def move(self, direction):
 
-        self.snakeDirection = i, j = self.vector[direction]
-        self.x += self.speed*i
-        self.y += self.speed*j
+        self.turns[self.head.position[:]] = self.vector[direction]
 
-        self.turns[(self.x, self. y)] = self.snakeDirection
+        for index, part in enumerate(self.bodyparts):
+            position = part.position[:]
+            if position in self.turns:
+                i, j = self.turns[position]
+                part.move((i, j))
+                if index == len(self.bodyparts)-1:
+                    self.turns.pop(position)
 
-    def addcube(self):
-        pass
+    def addCube(self):
+        tail = self.bodyparts[-1]
+        row, line = tail.position
+        i, j = tail.direction
 
-class Window:
+        addedCube = cube((row + (0 if i == 0 else -i), line + (0 if j == 0 else -j)))
+        self.bodyparts.append(addedCube)
+
+        self.bodyparts[-1].direction = tail.direction
+
+    def draw(self, surface):
+
+        for index, part in enumerate(self.bodyparts):
+            if index == 0:
+                part.draw(surface, eyes=True)
+            else:
+                part.draw(surface)
+
+class apple:
 
     def __init__(self):
+        self.spawnPossible = set(product(range(10, 21), (20, 10, -1)))
 
-        pygame.display.set_caption("Snake")
-        self.screenHeight, self.screenWidth = 450, 450
-        self.screen = pygame.display.set_mode((self.screenHeight, self.screenWidth))
-        self.snake = Snake((0, 255, 0), (90, 240))
+    def spawn(self, snake):
+        snakePositions = set(snake.bodyparts)
+        spawnCoordinate = choice(list(self.spawnPossible - snakePositions))
+        return spawnCoordinate
+
+class window:
+
+    def __init__(self, dimension, rows):
+
+        self.width, self.height = dimension
+        self.rows = rows
+        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.snake = snake((255, 0, 0), (10, 10))
+        self.apple = cube(apple().spawn(self.snake), color=(0, 255, 0))
         self.running = True
+        self.clock = pygame.time.Clock()
 
-    def redrawSnake(self):
+    def drawGrid(self):
 
-        snakeDimension = self.screenHeight//15
-        pygame.draw.rect(self.screen, self.snake.color, (self.snake.x, self.snake.y, snakeDimension, snakeDimension))
+        sizeBtwn = self.width // self.rows
+        for n in range(0, self.width, sizeBtwn):
+            pygame.draw.line(self.screen, (105, 105, 105), (n, 0), (n, self.width))
+            pygame.draw.line(self.screen, (105, 105, 105), (0, n), (self.width, n))
 
-    def redrawLines(self):
+    def redrawWindow(self):
 
-        rowWidth = self.screenHeight//15
-        for n in range(0, self.screenHeight, rowWidth):
-            pygame.draw.line(self.screen, (105, 105, 105), (n, 0), (n, self.screenHeight))
-            pygame.draw.line(self.screen, (105, 105, 105), (0, n), (self.screenWidth, n))
+        self.screen.fill((0, 0, 0))
+        self.drawGrid()
+        self.apple.draw(self.screen)
+        self.snake.draw(self.screen)
+        pygame.display.update()
 
     def mainloop(self):
 
         direction = 'statique'
 
         while self.running:
-
-            pygame.time.delay(75)
+            pygame.time.delay(50)
+            self.clock.tick(8)
             events = pygame.event.get()
             keys = pygame.key.get_pressed()
 
@@ -86,14 +129,13 @@ class Window:
 
             self.snake.move(direction)
 
-            self.screen.fill((0, 0, 0))
+            if self.snake.bodyparts[0].position == self.apple.position:
+                self.snake.addCube()
+                self.apple = cube(apple().spawn(self.snake), color=(0, 255, 0))
 
-            self.redrawSnake()
-            self.redrawLines()
+            self.redrawWindow()
 
-            pygame.display.update()
-
-game = Window()
+game = window((500, 500), 20)
 game.mainloop()
 
 pygame.quit()
