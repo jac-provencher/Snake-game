@@ -48,6 +48,8 @@ class snake:
                 part.move((i, j))
                 if index == len(self.bodyparts)-1:
                     self.turns.pop(position)
+            else:
+                part.move(part.direction)
 
     def addCube(self):
         tail = self.bodyparts[-1]
@@ -70,11 +72,13 @@ class snake:
 class apple:
 
     def __init__(self):
-        self.spawnPossible = set(product(range(10, 21), (20, 10, -1)))
+        self.spawnPossible = set(product(range(1, 20), range(1, 20)))
 
     def spawn(self, snake):
         snakePositions = set(snake.bodyparts)
         spawnCoordinate = choice(list(self.spawnPossible - snakePositions))
+        print(spawnCoordinate)
+
         return spawnCoordinate
 
 class window:
